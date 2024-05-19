@@ -1,4 +1,4 @@
-import React, {useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { movies } from "./data";
 import { slots } from "./data";
 import { seats } from "./data";
@@ -10,7 +10,33 @@ const Dasboard = () => {
   const [seat, setSeat] = useState();
   const [selectedSeats, setSelectedSeats] = useState({});
   const fileInputRef = useRef({});
-    
+  const [bookingDetails, setBookingdetails] = useState()
+  const [shouldFetchDetails, setShouldFetchDetails] = useState(true);
+  const [changeColorMovie, setChangecolor] = useState()
+  const [changeColorSlot, setChangesolt] = useState()
+
+  useEffect(() => {
+    if(shouldFetchDetails){
+    const fetchBookinkDeatils = async () => {
+      try {
+        const bookingDetails = await fetch('/booking')
+        if (!bookingDetails.ok) {
+          throw new Error('Network response was not ok')
+        }
+        const movieDeatils = await bookingDetails.json()
+        setBookingdetails(movieDeatils.data)
+        console.log(movieDeatils)
+      } catch (e) {
+        console.log('Error fetching booking details' + e)
+      }
+
+    }
+
+    fetchBookinkDeatils()
+    setShouldFetchDetails(false)
+  }
+  }, [shouldFetchDetails])
+  console.log(bookingDetails)
 
   const bookMovie = async (e) => {
     if (!movie || !slot || !Object.keys(selectedSeats).length) {
@@ -31,7 +57,6 @@ const Dasboard = () => {
         }),
       });
       const data = await res.json();
-      
 
       if (res.ok) {
         window.alert("Booking successful");
@@ -40,10 +65,13 @@ const Dasboard = () => {
         setSlot("");
         setSelectedSeats({});
         Object.keys(fileInputRef.current).forEach((key) => {
-            if (fileInputRef.current[key]) {
-              fileInputRef.current[key].value = '';
-            }
-          });
+          if (fileInputRef.current[key]) {
+            fileInputRef.current[key].value = '';
+          }
+        });
+        setShouldFetchDetails(true);
+        setChangecolor(null)
+        setChangesolt(null)
       } else {
         window.alert("Error booking movie: " + data.message);
       }
@@ -57,9 +85,6 @@ const Dasboard = () => {
     setSelectedSeats({ ...selectedSeats, [seatName]: seatValue });
 
   };
-
-  console.log(fileInputRef.current["A1"])
-
   return (
     <>
       <div className="container mx-auto">
@@ -72,8 +97,8 @@ const Dasboard = () => {
                 return (
                   <>
                     <button
-                      onClick={(e) => setMovie(e.target.value)}
-                      className="px-4 py-3 border border-black m-3 hover:bg-red-500 hover:text-white rounded-lg font-semibold"
+                      onClick={(e) => {setMovie(e.target.value); setChangecolor(movie)}}
+                      className={`px-4 py-3 border border-black m-3 ${changeColorMovie === movie ? "bg-red-500" : "hover:bg-red-500"} hover:bg-red-500 hover:text-white rounded-lg font-semibold`}
                       value={movie}
                     >
                       {movie}
@@ -88,8 +113,8 @@ const Dasboard = () => {
                 return (
                   <>
                     <button
-                      onClick={(e) => setSlot(e.target.value)}
-                      className="px-4 py-3 border border-black m-3 hover:bg-red-500 rounded-lg hover:text-white font-semibold"
+                      onClick={(e) => {setSlot(e.target.value); setChangesolt(slot)}}
+                      className={`px-4 py-3 border border-black m-3 ${changeColorSlot === slot ? "bg-red-500" : "hover:bg-red-500"} rounded-lg hover:text-white font-semibold`}
                       value={slot}
                     >
                       {slot}
@@ -114,6 +139,7 @@ const Dasboard = () => {
                           ref={(el) => (fileInputRef.current[seatName] = el)}
                           className="appearance-none border border-black rounded w-14 flex text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
                           type="number"
+                          min="1"
                           required
                         />
                       </div>
@@ -132,11 +158,22 @@ const Dasboard = () => {
           <div className="rightcontainer w-3/12">
             <div className="border border-black p-5 rounded-md m-3">
               <h3 className="text-2xl font-bold mb-2">Last Booking Details:</h3>
-              <div className="bookingDetails ">
-                <div className="font-semibold">Seats:</div>
-                <div className="font-semibold">Slot:</div>
-                <div className="font-semibold">Movie:</div>
-              </div>
+
+              {bookingDetails ? (
+                <div className="bookingDetails">
+                  <div className="font-semibold">Seats:</div>
+                  <div>
+                    {Object.keys(bookingDetails.seats).map((seat) => (
+                      <div key={seat}>{`${seat}: ${bookingDetails.seats[seat]}`}</div>
+                    ))}
+                  </div>
+                  <div className="font-semibold">Slot: {bookingDetails.slot}</div>
+                  <div className="font-semibold">Movie: {bookingDetails.movie}</div>
+                </div>
+              ) : (               
+                  <h2 className="text-xl font-semibold bg-red-500 p-3 rounded-lg text-white text-center">No previous booking found</h2>
+              )}
+
             </div>
           </div>
         </div>
